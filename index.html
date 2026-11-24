@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Kasir Seblak Prasmanan</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * {
       -webkit-tap-highlight-color: transparent;
@@ -39,20 +40,25 @@
 
   <!-- HEADER -->
   <header class="bg-red-600 text-white sticky top-0 z-30 shadow-md">
-    <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <span class="text-2xl">🍲</span>
-        <div>
-          <h1 id="headerStoreName" class="font-bold text-base leading-tight">Seblak Prasmanan</h1>
-          <p id="headerStoreSubtitle" class="text-[11px] text-red-100 truncate max-w-[190px]">Kasir Cepat & Rekap Harian</p>
+    <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="text-2xl shrink-0">🍲</span>
+        <div class="min-w-0">
+          <h1 id="headerStoreName" class="font-bold text-base leading-tight truncate">Seblak Prasmanan</h1>
+          <div class="flex items-center gap-1.5">
+            <p id="headerStoreSubtitle" class="text-[11px] text-red-100 truncate max-w-[130px]">Kasir Cepat & Rekap Harian</p>
+            <span id="realtimeBadge" class="text-[10px] font-bold bg-red-800/80 text-red-100 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+              ⏳ Menghubungkan...
+            </span>
+          </div>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 shrink-0">
         <button type="button" id="btnLockAdmin" onclick="lockAdmin()" class="hidden bg-red-800 hover:bg-red-900 active:scale-95 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition">
           <span>🔒</span>
-          <span>Kunci Admin</span>
+          <span>Kunci</span>
         </button>
-        <span id="badgeLockStatus" class="bg-red-700/80 text-red-100 text-[11px] font-medium px-2.5 py-1 rounded-lg">
+        <span id="badgeLockStatus" class="bg-red-700/80 text-red-100 text-[11px] font-medium px-2 py-1 rounded-lg">
           🔒 Terkunci
         </span>
       </div>
@@ -79,7 +85,7 @@
 
     <!-- ==================== TAB 1: KASIR ==================== -->
     <section id="view-kasir" class="space-y-4">
-      
+
       <!-- Level Pedas & Tipe Kuah -->
       <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/80 space-y-3">
         <div>
@@ -221,7 +227,7 @@
       <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between">
         <div class="text-xs text-amber-900">
           <span class="font-bold block">🔓 Mode Admin Terbuka</span>
-          <span>Menu, QRIS & Omzet dapat diakses.</span>
+          <span>Perubahan Menu, QRIS & Lokasi otomatis sinkron ke Supabase.</span>
         </div>
         <button type="button" onclick="lockAdmin()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded-xl">
           🔒 Kunci Lagi
@@ -268,8 +274,8 @@
           <h2 class="text-sm font-extrabold text-slate-800">📱 Gambar QR Code QRIS</h2>
           <span class="text-[11px] text-slate-400">Muncul di Kasir</span>
         </div>
-        <p class="text-xs text-slate-500">Upload foto/gambar kode QRIS warung agar otomatis muncul saat pembeli bayar pakai QRIS.</p>
-        
+        <p class="text-xs text-slate-500">Upload foto/gambar kode QRIS warung agar otomatis muncul dan tersinkron ke semua HP.</p>
+
         <div class="flex flex-col items-center gap-3 bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3">
           <div id="qrisSettingsPreview" class="text-center text-xs text-slate-400">
             Belum ada gambar QRIS
@@ -317,24 +323,18 @@
         </div>
       </div>
 
-      <!-- Keamanan PIN & Backup Data -->
+      <!-- Keamanan PIN & Cadangan Data -->
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-        <h2 class="text-sm font-extrabold text-slate-800">🔐 Keamanan PIN & Cadangan Data</h2>
+        <h2 class="text-sm font-extrabold text-slate-800">🔐 Keamanan PIN & Sinkronisasi</h2>
         <div class="flex gap-2">
           <input id="newPinInput" type="password" inputmode="numeric" maxlength="4" placeholder="PIN Baru (4 angka)" class="flex-1 text-sm px-3 py-2 rounded-xl border border-slate-300" />
           <button type="button" onclick="changePin()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl">
             Ganti PIN
           </button>
         </div>
-        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-          <button type="button" onclick="exportBackupJSON()" class="py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl">
-            ⬇️ Ekspor Backup
-          </button>
-          <label class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl text-center cursor-pointer">
-            ⬆️ Impor Backup
-            <input type="file" accept=".json" onchange="importBackupJSON(event)" class="hidden" />
-          </label>
-        </div>
+        <button type="button" onclick="forceSyncFromCloud()" class="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl">
+          🔄 Tarik Data Terbaru dari Supabase Sekarang
+        </button>
       </div>
     </section>
 
@@ -402,7 +402,7 @@
 
   </main>
 
-  <!-- MODAL ZOOM QRIS (Biar pembeli gampang scan) -->
+   <!-- MODAL ZOOM QRIS -->
   <div id="qrisZoomModal" onclick="closeQrisZoom()" class="fixed inset-0 bg-black/80 z-50 hidden flex-col items-center justify-center p-4">
     <div onclick="event.stopPropagation()" class="bg-white rounded-3xl p-4 max-w-sm w-full text-center space-y-3">
       <div class="flex items-center justify-between">
@@ -417,7 +417,7 @@
     </div>
   </div>
 
-  <!-- CUSTOM DIALOG MODAL (PENGGANTI ALERT & CONFIRM) -->
+  <!-- CUSTOM DIALOG MODAL -->
   <div id="customDialogModal" onclick="closeCustomDialog(false)" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4">
     <div onclick="event.stopPropagation()" class="bg-white rounded-2xl p-4 max-w-xs w-full shadow-xl space-y-3">
       <h3 id="customDialogTitle" class="text-sm font-extrabold text-slate-800">Konfirmasi</h3>
@@ -432,6 +432,16 @@
   </div>
 
   <script>
+    // ==================== KONFIGURASI SUPABASE ====================
+    // Ganti SUPABASE_ANON_KEY dengan Publishable / Anon Key dari jendela Connect Supabase
+    const SUPABASE_URL = 'https://ncxuwgrdwblfhuelxgss.supabase.co';[span_2](start_span)[span_2](end_span)
+    const SUPABASE_ANON_KEY = 'ISI_PUBLISHABLE_KEY_SUPABASE_KAMU_DI_SINI';
+    const CONFIG_ROW_ID = 'main_warung';
+
+    const supabaseClient = (typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('ISI_PUBLISHABLE_KEY'))
+      ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
     // ==================== DATA DEFAULT & STATE ====================
     const STORAGE_KEYS = {
       TOPPINGS: 'seblak_toppings_v2',
@@ -469,20 +479,19 @@
     let adminPin = localStorage.getItem(STORAGE_KEYS.PIN) || '1234';
     let qrisImageBase64 = localStorage.getItem(STORAGE_KEYS.QRIS) || '';
 
-    // State sesi saat ini
     let cart = {};
     let selectedSpice = 'Lv 1';
     let selectedBroth = 'Nyemek';
     let paymentMethod = 'Tunai';
     let selectedEmoji = '🍘';
 
-    // State Kunci Admin (Menu & Omzet)
     let isAdminUnlocked = false;
     let pendingAdminTab = 'omzet';
     let enteredPinBuffer = '';
     let dialogResolveCallback = null;
+    let currentActiveTab = 'kasir';
 
-    // ==================== HELPER & CUSTOM DIALOG ====================
+     // ==================== HELPER & CUSTOM DIALOG ====================
     function formatRupiah(num) {
       return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID');
     }
@@ -495,6 +504,15 @@
       window._toastTimer = setTimeout(() => {
         toast.classList.add('opacity-0');
       }, 2200);
+    }
+
+    function setRealtimeStatus(text, isOnline) {
+      const badge = document.getElementById('realtimeBadge');
+      if (!badge) return;
+      badge.textContent = text;
+      badge.className = isOnline
+        ? 'text-[10px] font-bold bg-emerald-600 text-white px-1.5 py-0.5 rounded-md whitespace-nowrap'
+        : 'text-[10px] font-bold bg-red-800/80 text-red-100 px-1.5 py-0.5 rounded-md whitespace-nowrap';
     }
 
     function showMessageDialog(title, msg) {
@@ -553,7 +571,7 @@
       document.body.removeChild(ta);
     }
 
-    function persistData() {
+    function saveLocalCache() {
       localStorage.setItem(STORAGE_KEYS.TOPPINGS, JSON.stringify(toppings));
       localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
       localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeInfo));
@@ -563,9 +581,119 @@
       } else {
         localStorage.removeItem(STORAGE_KEYS.QRIS);
       }
+                                            }
+
+      // ==================== SINKRONISASI SUPABASE ====================
+    async function pushConfigToSupabase() {
+      saveLocalCache();
+      if (!supabaseClient) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from('seblak_config')
+          .upsert({
+            id: CONFIG_ROW_ID,
+            toppings: toppings,
+            store_info: storeInfo,
+            admin_pin: adminPin,
+            qris_image_base64: qrisImageBase64,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+
+        if (error) {
+          console.error('Supabase upsert error:', error);
+          showToast('⚠️ Tersimpan lokal, cek koneksi Supabase');
+        }
+      } catch (err) {
+        console.error('Supabase push exception:', err);
+      }
     }
 
-    // ==================== NAVIGASI & PIN ====================
+    function applyCloudRow(row) {
+      if (!row) return;
+      if (Array.isArray(row.toppings) && row.toppings.length > 0) {
+        toppings = row.toppings;
+      }
+      if (row.store_info && typeof row.store_info === 'object') {
+        storeInfo = { ...DEFAULT_STORE, ...row.store_info };
+      }
+      if (typeof row.admin_pin === 'string' && row.admin_pin.length === 4) {
+        adminPin = row.admin_pin;
+      }
+      if (typeof row.qris_image_base64 === 'string') {
+        qrisImageBase64 = row.qris_image_base64;
+      }
+      saveLocalCache();
+      applyHeaderStoreInfo();
+
+      if (currentActiveTab === 'kasir') {
+        renderKasir();
+      } else if (currentActiveTab === 'menu' && isAdminUnlocked) {
+        renderMenuSettings();
+      }
+    }
+
+    async function pullConfigFromSupabase(showNotice = false) {
+      if (!supabaseClient) {
+        setRealtimeStatus('📴 Mode Lokal', false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('seblak_config')
+          .select('*')
+          .eq('id', CONFIG_ROW_ID)
+          .single();
+
+        if (error) {
+          setRealtimeStatus('⚠️ Cek API Key', false);
+          if (showNotice) showToast('Gagal ambil data Supabase');
+          return;
+        }
+
+        if (data) {
+          applyCloudRow(data);
+          setRealtimeStatus('🔄 Real-Time Aktif', true);
+          if (showNotice) showToast('✅ Data tersinkron dari Supabase');
+        }
+      } catch (err) {
+        setRealtimeStatus('📴 Offline', false);
+      }
+    }
+
+    async function forceSyncFromCloud() {
+      await pullConfigFromSupabase(true);
+    }
+
+    function initRealtimeSubscription() {
+      if (!supabaseClient) return;
+
+      supabaseClient
+        .channel('seblak-config-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'seblak_config',
+            filter: `id=eq.${CONFIG_ROW_ID}`
+          },
+          (payload) => {
+            if (payload.new) {
+              applyCloudRow(payload.new);
+              showToast('🔄 Menu / QRIS diperbarui otomatis!');
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setRealtimeStatus('🔄 Real-Time Aktif', true);
+          }
+        });
+          }
+
+      // ==================== NAVIGASI & PIN ====================
     function updateLockUI() {
       const btnLock = document.getElementById('btnLockAdmin');
       const badgeLock = document.getElementById('badgeLockStatus');
@@ -596,6 +724,7 @@
       });
 
       if (tabName === 'kasir') {
+        currentActiveTab = 'kasir';
         document.getElementById('view-kasir').classList.remove('hidden');
         const btn = document.getElementById('tabBtn-kasir');
         btn.classList.add('border-white', 'text-white', 'bg-red-800/40');
@@ -621,6 +750,7 @@
         return;
       }
 
+      currentActiveTab = tabName;
       document.getElementById('view-' + tabName).classList.remove('hidden');
       if (tabName === 'menu') renderMenuSettings();
       if (tabName === 'omzet') renderOmzet();
@@ -687,7 +817,7 @@
       const ok = await showConfirmDialog('Reset PIN Admin', 'Reset PIN Admin kembali ke default (1234)?');
       if (ok) {
         adminPin = '1234';
-        persistData();
+        await pushConfigToSupabase();
         enteredPinBuffer = '';
         updatePinDots();
         showToast('PIN di-reset ke 1234');
@@ -701,12 +831,12 @@
         return;
       }
       adminPin = val;
-      persistData();
+      await pushConfigToSupabase();
       document.getElementById('newPinInput').value = '';
-      showToast('✅ PIN baru berhasil disimpan!');
+      showToast('✅ PIN baru berhasil disimpan & disinkron!');
     }
 
-    // ==================== TAB 1: KASIR ====================
+     // ==================== TAB 1: KASIR ====================
     function renderKasir() {
       const spiceEl = document.getElementById('spiceContainer');
       spiceEl.innerHTML = SPICE_LEVELS.map(lv => {
@@ -938,7 +1068,7 @@
       };
 
       transactions.unshift(tx);
-      persistData();
+      saveLocalCache();
       resetCart();
       showToast(`✅ Transaksi ${formatRupiah(totalPrice)} tersimpan!`);
     }
@@ -1006,7 +1136,7 @@
         if (idx !== -1) {
           toppings[idx] = { ...toppings[idx], name, price, emoji: selectedEmoji };
         }
-        showToast('✅ Topping diperbarui');
+        showToast('✅ Topping diperbarui & disinkron');
       } else {
         toppings.push({
           id: 't_' + Date.now(),
@@ -1014,11 +1144,11 @@
           price,
           emoji: selectedEmoji
         });
-        showToast('✅ Topping baru ditambahkan');
+        showToast('✅ Topping baru ditambahkan & disinkron');
       }
 
       cancelEditTopping();
-      persistData();
+      await pushConfigToSupabase();
       renderMenuSettings();
     }
 
@@ -1047,9 +1177,9 @@
       if (!ok) return;
       toppings = toppings.filter(t => t.id !== id);
       delete cart[id];
-      persistData();
+      await pushConfigToSupabase();
       renderMenuSettings();
-      showToast('🗑️ Topping dihapus');
+      showToast('🗑️ Topping dihapus & disinkron');
     }
 
     function handleQrisUpload(event) {
@@ -1059,9 +1189,9 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         const img = new Image();
-        img.onload = function() {
+        img.onload = async function() {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 500;
+          const MAX_WIDTH = 480;
           let width = img.width;
           let height = img.height;
 
@@ -1074,10 +1204,10 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          qrisImageBase64 = canvas.toDataURL('image/jpeg', 0.82);
-          persistData();
+          qrisImageBase64 = canvas.toDataURL('image/jpeg', 0.78);
+          await pushConfigToSupabase();
           renderMenuSettings();
-          showToast('✅ Gambar QRIS berhasil disimpan!');
+          showToast('✅ Gambar QRIS tersimpan & tersinkron!');
         };
         img.src = e.target.result;
       };
@@ -1088,21 +1218,21 @@
       const ok = await showConfirmDialog('Hapus QRIS', 'Hapus gambar QRIS yang tersimpan?');
       if (!ok) return;
       qrisImageBase64 = '';
-      persistData();
+      await pushConfigToSupabase();
       renderMenuSettings();
       showToast('🗑️ Gambar QRIS dihapus');
     }
 
-    function saveStoreInfo() {
+    async function saveStoreInfo() {
       storeInfo = {
         name: document.getElementById('storeNameInput').value.trim() || 'Seblak Prasmanan',
         address: document.getElementById('storeAddressInput').value.trim(),
         hours: document.getElementById('storeHoursInput').value.trim(),
         maps: document.getElementById('storeMapsInput').value.trim()
       };
-      persistData();
+      await pushConfigToSupabase();
       applyHeaderStoreInfo();
-      showToast('✅ Info & lokasi jualan disimpan');
+      showToast('✅ Info & lokasi jualan tersinkron');
     }
 
     function applyHeaderStoreInfo() {
@@ -1117,7 +1247,7 @@
       copyTextFallback(text);
     }
 
-    // ==================== TAB 3: OMZET & RIWAYAT ====================
+     // ==================== TAB 3: OMZET & RIWAYAT ====================
     function renderOmzet() {
       document.getElementById('todayDateLabel').textContent = new Date().toLocaleDateString('id-ID', {
         weekday: 'short',
@@ -1212,60 +1342,19 @@
       );
       if (ok) {
         transactions = [];
-        persistData();
+        saveLocalCache();
         renderOmzet();
         showToast('🧹 Tutup buku selesai, omzet di-reset');
       }
     }
 
-    // ==================== BACKUP & RESTORE JSON ====================
-    function exportBackupJSON() {
-      const backupObj = {
-        exportedAt: new Date().toISOString(),
-        toppings,
-        transactions,
-        storeInfo,
-        adminPin,
-        qrisImageBase64
-      };
-      const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `backup-seblak-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('⬇️ File backup berhasil diunduh');
-    }
-
-    function importBackupJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data.toppings) toppings = data.toppings;
-          if (data.transactions) transactions = data.transactions;
-          if (data.storeInfo) storeInfo = data.storeInfo;
-          if (data.adminPin) adminPin = data.adminPin;
-          if (data.qrisImageBase64 !== undefined) qrisImageBase64 = data.qrisImageBase64;
-          persistData();
-          applyHeaderStoreInfo();
-          renderMenuSettings();
-          showToast('✅ Data backup berhasil dipulihkan!');
-        } catch (err) {
-          await showMessageDialog('Gagal Impor', 'File backup tidak valid!');
-        }
-      };
-      reader.readAsText(file);
-    }
-
     // ==================== INIT ====================
-    window.onload = function() {
+    window.onload = async function() {
       applyHeaderStoreInfo();
       updateLockUI();
       renderKasir();
+      await pullConfigFromSupabase(false);
+      initRealtimeSubscription();
     };
   </script>
 </body>
