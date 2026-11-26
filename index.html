@@ -861,8 +861,85 @@
       await pullConfigFromSupabase(true);
     }
 
+     const shownIncomingOrderIds = new Set();
+    let isFirstTransactionLoad = true;
+
+    function handleIncomingTransaction(newTx) {
+      if (!newTx || !newTx.id) return;
+
+      if (!transactions.some(t => t.id === newTx.id)) {
+        transactions.unshift(newTx);
+        saveLocalCache();
+        if (currentActiveTab === 'omzet' && isAdminUnlocked) {
+          renderOmzet();
+        }
+      }
+
+      if (
+        !isFirstTransactionLoad &&
+        !localSubmittedTxIds.has(newTx.id) &&
+        !shownIncomingOrderIds.has(newTx.id)
+      ) {
+        shownIncomingOrderIds.add(newTx.id);
+        showIncomingOrderModal(newTx);
+      } else {
+        shownIncomingOrderIds.add(newTx.id);
+      }
+    }
+
+    async function checkNewTransactionsFallback() {
+      if (!supabaseClient) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from('seblak_transactions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error || !Array.isArray(data)) return;
+
+        if (isFirstTransactionLoad) {
+          transactions = data;
+          data.forEach(tx => shownIncomingOrderIds.add(tx.id));
+          saveLocalCache();
+          isFirstTransactionLoad = false;
+          if (currentActiveTab === 'omzet' && isAdminUnlocked) {
+            renderOmzet();
+          }
+          return;
+        }
+
+        const freshOrders = data
+          .filter(tx => !localSubmittedTxIds.has(tx.id) && !shownIncomingOrderIds.has(tx.id))
+          .reverse();
+
+        freshOrders.forEach(tx => {
+          handleIncomingTransaction(tx);
+        });
+
+        transactions = data;
+        saveLocalCache();
+        if (currentActiveTab === 'omzet' && isAdminUnlocked) {
+          renderOmzet();
+        }
+      } catch (err) {
+        console.warn('Fallback poll err:', err);
+      }
+    }
+
     function initRealtimeSubscription() {
       if (!supabaseClient) return;
+
+      // Jalankan pengecekan awal agar transaksi lama tidak memicu pop-up beruntun
+      checkNewTransactionsFallback();
+
+      // Cek pesanan baru secara berkala tiap 3 detik sebagai cadangan jika websocket terhambat
+      clearInterval(window._txPollInterval);
+      window._txPollInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          checkNewTransactionsFallback();
+        }
+      }, 3000);
 
       // 1. Channel Sinkronisasi Pengaturan (Menu, QRIS, Lokasi, PIN)
       supabaseClient
@@ -899,21 +976,8 @@
             table: 'seblak_transactions'
           },
           (payload) => {
-            const newTx = payload.new;
-            if (!newTx) return;
-
-            // Tambahkan ke daftar transaksi jika belum ada
-            if (!transactions.some(t => t.id === newTx.id)) {
-              transactions.unshift(newTx);
-              saveLocalCache();
-              if (currentActiveTab === 'omzet' && isAdminUnlocked) {
-                renderOmzet();
-              }
-            }
-
-            // Jika transaksi berasal dari HP lain (pembeli), bunyikan ting-tong & tampilkan pop-up detail pesanan!
-            if (!localSubmittedTxIds.has(newTx.id)) {
-              showIncomingOrderModal(newTx);
+            if (payload.new) {
+              handleIncomingTransaction(payload.new);
             }
           }
         )
@@ -930,6 +994,7 @@
         )
         .subscribe();
     }
+
 
     // ==================== NAVIGASI & PIN ====================
     function updateLockUI() {
