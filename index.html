@@ -34,6 +34,13 @@
     .animate-shake {
       animation: shake 0.25s ease-in-out;
     }
+    @keyframes popIn {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop-in {
+      animation: popIn 0.22s ease-out;
+    }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col">
@@ -46,7 +53,7 @@
         <div class="min-w-0">
           <h1 id="headerStoreName" class="font-bold text-base leading-tight truncate">Seblak Prasmanan</h1>
           <div class="flex items-center gap-1.5">
-            <p id="headerStoreSubtitle" class="text-[11px] text-red-100 truncate max-w-[130px]">Kasir Cepat & Rekap Harian</p>
+            <p id="headerStoreSubtitle" class="text-[11px] text-red-100 truncate max-w-[125px]">Kasir Cepat & Rekap Harian</p>
             <span id="realtimeBadge" class="text-[10px] font-bold bg-red-800/80 text-red-100 px-1.5 py-0.5 rounded-md whitespace-nowrap">
               ⏳ Menghubungkan...
             </span>
@@ -54,6 +61,9 @@
         </div>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" onclick="testTingTongSound()" title="Tes Suara Notif" class="bg-red-700/90 hover:bg-red-800 active:scale-95 text-white text-xs font-semibold px-2 py-1.5 rounded-lg transition">
+          🔔
+        </button>
         <button type="button" id="btnLockAdmin" onclick="lockAdmin()" class="hidden bg-red-800 hover:bg-red-900 active:scale-95 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition">
           <span>🔒</span>
           <span>Kunci</span>
@@ -167,8 +177,8 @@
         </div>
 
         <!-- Tombol Simpan Transaksi -->
-        <button type="button" onclick="saveTransaction()" class="w-full py-3.5 bg-red-600 hover:bg-red-700 active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-md transition">
-          ✅ Simpan Transaksi
+        <button type="button" id="btnSaveTransaction" onclick="saveTransaction()" class="w-full py-3.5 bg-red-600 hover:bg-red-700 active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-md transition">
+          ✅ Kirim / Simpan Pesanan
         </button>
       </div>
     </section>
@@ -323,18 +333,23 @@
         </div>
       </div>
 
-      <!-- Keamanan PIN & Cadangan Data -->
+ <!-- Keamanan PIN & Notifikasi -->
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-        <h2 class="text-sm font-extrabold text-slate-800">🔐 Keamanan PIN & Sinkronisasi</h2>
+        <h2 class="text-sm font-extrabold text-slate-800">🔐 Keamanan PIN & Nada Notifikasi</h2>
         <div class="flex gap-2">
           <input id="newPinInput" type="password" inputmode="numeric" maxlength="4" placeholder="PIN Baru (4 angka)" class="flex-1 text-sm px-3 py-2 rounded-xl border border-slate-300" />
           <button type="button" onclick="changePin()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl">
             Ganti PIN
           </button>
         </div>
-        <button type="button" onclick="forceSyncFromCloud()" class="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl">
-          🔄 Tarik Data Terbaru dari Supabase Sekarang
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="testTingTongSound()" class="py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs rounded-xl">
+            🔔 Tes Suara Ting-Tong
+          </button>
+          <button type="button" onclick="forceSyncFromCloud()" class="py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs rounded-xl">
+            🔄 Sinkronkan Sekarang
+          </button>
+        </div>
       </div>
     </section>
 
@@ -345,7 +360,7 @@
       <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between">
         <div class="text-xs text-amber-900">
           <span class="font-bold block">🔓 Mode Admin Terbuka</span>
-          <span>Data pemasukan & riwayat terlihat.</span>
+          <span>Data pemasukan & riwayat tersinkron real-time.</span>
         </div>
         <button type="button" onclick="lockAdmin()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded-xl">
           🔒 Kunci Lagi
@@ -402,7 +417,55 @@
 
   </main>
 
-   <!-- MODAL ZOOM QRIS -->
+  <!-- MODAL POP-UP PESANAN MASUK REAL-TIME (UNTUK PENJUAL) -->
+  <div id="incomingOrderModal" onclick="closeIncomingOrderModal()" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4">
+    <div onclick="event.stopPropagation()" class="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl border-2 border-red-500 space-y-3.5 animate-pop-in">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🔔</span>
+          <div>
+            <h3 class="text-base font-extrabold text-red-600 leading-tight">Pesanan Baru Masuk!</h3>
+            <p id="incomingOrderMeta" class="text-[11px] text-slate-500 font-semibold">19.00 • Tunai</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeIncomingOrderModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm">✕</button>
+      </div>
+
+      <!-- Settingan Pedas & Kuah -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center justify-between">
+        <span class="text-xs font-bold text-amber-900">Settingan Mangkuk:</span>
+        <span id="incomingOrderSpec" class="text-xs font-extrabold text-red-700 bg-white px-2.5 py-0.5 rounded-lg border border-amber-200">Lv 1 • Nyemek</span>
+      </div>
+
+      <!-- Rincian Topping -->
+      <div class="space-y-1.5">
+        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Rincian Topping:</p>
+        <div id="incomingOrderItems" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs space-y-1 max-h-44 overflow-y-auto"></div>
+      </div>
+
+      <!-- Catatan Pembeli -->
+      <div id="incomingOrderNoteBox" class="hidden bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-xs text-red-800">
+        <span class="font-bold">Catatan:</span> <span id="incomingOrderNoteText"></span>
+      </div>
+
+      <!-- Total Harga -->
+      <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+        <span class="text-xs font-bold text-slate-600">Total Tagihan:</span>
+        <span id="incomingOrderTotal" class="text-xl font-extrabold text-red-600">Rp 0</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" onclick="testTingTongSound()" class="py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs rounded-xl">
+          🔊 Bunyikan Lagi
+        </button>
+        <button type="button" onclick="closeIncomingOrderModal()" class="py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl">
+          ✅ Siap Dibuat
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ZOOM QRIS -->
   <div id="qrisZoomModal" onclick="closeQrisZoom()" class="fixed inset-0 bg-black/80 z-50 hidden flex-col items-center justify-center p-4">
     <div onclick="event.stopPropagation()" class="bg-white rounded-3xl p-4 max-w-sm w-full text-center space-y-3">
       <div class="flex items-center justify-between">
@@ -433,12 +496,11 @@
 
   <script>
     // ==================== KONFIGURASI SUPABASE ====================
-    // Ganti SUPABASE_ANON_KEY dengan Publishable / Anon Key dari jendela Connect Supabase
     const SUPABASE_URL = 'https://ncxuwgrdwbifhueixgss.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_CvLCnEYX-YOSsS2SzWdNTQ_y3aiL2Ns';
     const CONFIG_ROW_ID = 'main_warung';
 
-    const supabaseClient = (typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('ISI_PUBLISHABLE_KEY'))
+    const supabaseClient = (typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_ANON_KEY)
       ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
       : null;
 
@@ -491,7 +553,118 @@
     let dialogResolveCallback = null;
     let currentActiveTab = 'kasir';
 
-     // ==================== HELPER & CUSTOM DIALOG ====================
+    // Melacak transaksi yang dibuat dari perangkat ini sendiri agar tidak memunculkan pop-up ganda di HP pembeli
+    const localSubmittedTxIds = new Set();
+    let sharedAudioCtx = null;
+
+    // ==================== SUARA TING-TONG & GETAR ====================
+    function unlockAudioContext() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      if (!sharedAudioCtx) {
+        sharedAudioCtx = new AudioCtx();
+      }
+      if (sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume().catch(() => {});
+      }
+      return sharedAudioCtx;
+    }
+
+    function playTingTongSound() {
+      try {
+        const ctx = unlockAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+
+        // Nada 1: "TING" (E5 - 659.25 Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(659.25, now);
+        gain1.gain.setValueAtTime(0.001, now);
+        gain1.gain.exponentialRampToValueAtTime(0.35, now + 0.03);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.46);
+
+        // Nada 2: "TONG" (C5 - 523.25 Hz)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(523.25, now + 0.28);
+        gain2.gain.setValueAtTime(0.001, now + 0.28);
+        gain2.gain.exponentialRampToValueAtTime(0.4, now + 0.31);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.28);
+        osc2.stop(now + 0.96);
+
+        // Getar HP jika didukung
+        if (navigator.vibrate) {
+          navigator.vibrate([180, 90, 260]);
+        }
+      } catch (e) {
+        console.warn('Audio belum aktif:', e);
+      }
+    }
+
+    function testTingTongSound() {
+      playTingTongSound();
+      showToast('🔔 Ting-tong! Suara notifikasi aktif');
+    }
+
+    // Aktifkan AudioContext saat pengguna pertama kali menyentuh layar HP
+    document.addEventListener('touchstart', unlockAudioContext, { once: true });
+    document.addEventListener('click', unlockAudioContext, { once: true });
+
+    // ==================== POP-UP PESANAN MASUK ====================
+    function showIncomingOrderModal(tx) {
+      if (!tx) return;
+
+      document.getElementById('incomingOrderMeta').textContent = `${tx.time || '-'} • ${tx.payment || 'Tunai'}`;
+      document.getElementById('incomingOrderSpec').textContent = `${tx.spice || 'Lv 1'} • ${tx.broth || 'Nyemek'}`;
+      document.getElementById('incomingOrderTotal').textContent = formatRupiah(tx.total);
+
+      const itemsContainer = document.getElementById('incomingOrderItems');
+      const itemsList = Array.isArray(tx.items) ? tx.items : [];
+      if (itemsList.length === 0) {
+        itemsContainer.innerHTML = '<p class="text-slate-400">Tidak ada rincian item</p>';
+      } else {
+        itemsContainer.innerHTML = itemsList.map(it => `
+          <div class="flex justify-between items-center py-0.5 border-b border-slate-200/70 last:border-none">
+            <span class="font-bold text-slate-800">${it.name} <span class="text-red-600">(${it.qty}x)</span></span>
+            <span class="font-semibold text-slate-600">${formatRupiah(it.subtotal)}</span>
+          </div>
+        `).join('');
+      }
+
+      const noteBox = document.getElementById('incomingOrderNoteBox');
+      const noteText = document.getElementById('incomingOrderNoteText');
+      if (tx.note && tx.note.trim() !== '') {
+        noteText.textContent = tx.note;
+        noteBox.classList.remove('hidden');
+      } else {
+        noteBox.classList.add('hidden');
+      }
+
+      const modal = document.getElementById('incomingOrderModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      playTingTongSound();
+    }
+
+    function closeIncomingOrderModal() {
+      const modal = document.getElementById('incomingOrderModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // ==================== HELPER & CUSTOM DIALOG ====================
     function formatRupiah(num) {
       return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID');
     }
@@ -503,7 +676,7 @@
       clearTimeout(window._toastTimer);
       window._toastTimer = setTimeout(() => {
         toast.classList.add('opacity-0');
-      }, 2200);
+      }, 2400);
     }
 
     function setRealtimeStatus(text, isOnline) {
@@ -581,9 +754,9 @@
       } else {
         localStorage.removeItem(STORAGE_KEYS.QRIS);
       }
-                                            }
+    }
 
-      // ==================== SINKRONISASI SUPABASE ====================
+    // ==================== SINKRONISASI SUPABASE ====================
     async function pushConfigToSupabase() {
       saveLocalCache();
       if (!supabaseClient) return;
@@ -633,6 +806,27 @@
       }
     }
 
+    async function pullTransactionsFromSupabase() {
+      if (!supabaseClient) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from('seblak_transactions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(200);
+
+        if (!error && Array.isArray(data)) {
+          transactions = data;
+          saveLocalCache();
+          if (currentActiveTab === 'omzet' && isAdminUnlocked) {
+            renderOmzet();
+          }
+        }
+      } catch (err) {
+        console.warn('Pull transactions err:', err);
+      }
+    }
+
     async function pullConfigFromSupabase(showNotice = false) {
       if (!supabaseClient) {
         setRealtimeStatus('📴 Mode Lokal', false);
@@ -654,6 +848,7 @@
 
         if (data) {
           applyCloudRow(data);
+          await pullTransactionsFromSupabase();
           setRealtimeStatus('🔄 Real-Time Aktif', true);
           if (showNotice) showToast('✅ Data tersinkron dari Supabase');
         }
@@ -669,6 +864,7 @@
     function initRealtimeSubscription() {
       if (!supabaseClient) return;
 
+      // 1. Channel Sinkronisasi Pengaturan (Menu, QRIS, Lokasi, PIN)
       supabaseClient
         .channel('seblak-config-realtime')
         .on(
@@ -691,9 +887,51 @@
             setRealtimeStatus('🔄 Real-Time Aktif', true);
           }
         });
-          }
 
-      // ==================== NAVIGASI & PIN ====================
+      // 2. Channel Pesanan Masuk Real-Time + Suara Ting-Tong + Pop-Up
+      supabaseClient
+        .channel('seblak-transactions-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'seblak_transactions'
+          },
+          (payload) => {
+            const newTx = payload.new;
+            if (!newTx) return;
+
+            // Tambahkan ke daftar transaksi jika belum ada
+            if (!transactions.some(t => t.id === newTx.id)) {
+              transactions.unshift(newTx);
+              saveLocalCache();
+              if (currentActiveTab === 'omzet' && isAdminUnlocked) {
+                renderOmzet();
+              }
+            }
+
+            // Jika transaksi berasal dari HP lain (pembeli), bunyikan ting-tong & tampilkan pop-up detail pesanan!
+            if (!localSubmittedTxIds.has(newTx.id)) {
+              showIncomingOrderModal(newTx);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'seblak_transactions'
+          },
+          () => {
+            pullTransactionsFromSupabase();
+          }
+        )
+        .subscribe();
+    }
+
+    // ==================== NAVIGASI & PIN ====================
     function updateLockUI() {
       const btnLock = document.getElementById('btnLockAdmin');
       const badgeLock = document.getElementById('badgeLockStatus');
@@ -836,7 +1074,7 @@
       showToast('✅ PIN baru berhasil disimpan & disinkron!');
     }
 
-     // ==================== TAB 1: KASIR ====================
+    // ==================== TAB 1: KASIR ====================
     function renderKasir() {
       const spiceEl = document.getElementById('spiceContainer');
       spiceEl.innerHTML = SPICE_LEVELS.map(lv => {
@@ -1054,9 +1292,13 @@
         }
       }
 
+      const btnSave = document.getElementById('btnSaveTransaction');
+      btnSave.disabled = true;
+      btnSave.textContent = '⏳ Mengirim Pesanan...';
+
       const now = new Date();
       const tx = {
-        id: 'TX-' + Date.now(),
+        id: 'TX-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
         time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         date: now.toLocaleDateString('id-ID'),
         spice: selectedSpice,
@@ -1067,13 +1309,31 @@
         total: totalPrice
       };
 
+      localSubmittedTxIds.add(tx.id);
       transactions.unshift(tx);
       saveLocalCache();
+
+      if (supabaseClient) {
+        const { error } = await supabaseClient
+          .from('seblak_transactions')
+          .insert([tx]);
+
+        if (error) {
+          console.error('Insert tx error:', error);
+          showToast('⚠️ Tersimpan lokal (cek tabel seblak_transactions)');
+        } else {
+          showToast(`✅ Pesanan ${formatRupiah(totalPrice)} terkirim ke penjual!`);
+        }
+      } else {
+        showToast(`✅ Transaksi ${formatRupiah(totalPrice)} tersimpan!`);
+      }
+
+      btnSave.disabled = false;
+      btnSave.textContent = '✅ Kirim / Simpan Pesanan';
       resetCart();
-      showToast(`✅ Transaksi ${formatRupiah(totalPrice)} tersimpan!`);
     }
 
-    // ==================== TAB 2: MENU, QRIS & LOKASI ====================
+      // ==================== TAB 2: MENU, QRIS & LOKASI ====================
     function renderMenuSettings() {
       const emojiEl = document.getElementById('emojiPicker');
       emojiEl.innerHTML = EMOJI_OPTIONS.map(em => `
@@ -1247,7 +1507,7 @@
       copyTextFallback(text);
     }
 
-     // ==================== TAB 3: OMZET & RIWAYAT ====================
+    // ==================== TAB 3: OMZET & RIWAYAT ====================
     function renderOmzet() {
       document.getElementById('todayDateLabel').textContent = new Date().toLocaleDateString('id-ID', {
         weekday: 'short',
@@ -1262,12 +1522,13 @@
       const itemCounter = {};
 
       transactions.forEach(tx => {
-        totalAll += tx.total;
-        if (tx.payment === 'Tunai') totalCash += tx.total;
-        else totalQris += tx.total;
+        const txTotal = Number(tx.total) || 0;
+        totalAll += txTotal;
+        if (tx.payment === 'Tunai') totalCash += txTotal;
+        else totalQris += txTotal;
 
-        tx.items.forEach(it => {
-          itemCounter[it.name] = (itemCounter[it.name] || 0) + it.qty;
+        (tx.items || []).forEach(it => {
+          itemCounter[it.name] = (itemCounter[it.name] || 0) + (Number(it.qty) || 0);
         });
       });
 
@@ -1293,18 +1554,18 @@
       if (transactions.length === 0) {
         histEl.innerHTML = 'Belum ada transaksi hari ini.';
       } else {
-        histEl.innerHTML = transactions.map(tx => `
-          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-1">
+        histEl.innerHTML = transactions.map((tx, idx) => `
+          <div onclick="showIncomingOrderModal(transactions[${idx}])" class="border border-slate-200 rounded-xl p-3 bg-slate-50 hover:bg-slate-100 cursor-pointer space-y-1 transition">
             <div class="flex items-center justify-between">
               <span class="font-bold text-slate-800">${tx.time} • ${tx.spice} (${tx.broth})</span>
               <span class="font-extrabold text-red-600">${formatRupiah(tx.total)}</span>
             </div>
             <p class="text-[11px] text-slate-600">
-              ${tx.items.map(i => `${i.name} (${i.qty}x)`).join(', ')}
+              ${(tx.items || []).map(i => `${i.name} (${i.qty}x)`).join(', ')}
             </p>
             <div class="flex items-center justify-between pt-1 text-[11px]">
               <span class="px-2 py-0.5 rounded bg-white border border-slate-200 font-semibold">${tx.payment}</span>
-              ${tx.note ? `<span class="text-amber-700 italic">"${tx.note}"</span>` : ''}
+              ${tx.note ? `<span class="text-amber-700 italic">"${tx.note}"</span>` : '<span class="text-slate-400">Ketuk untuk detail</span>'}
             </div>
           </div>
         `).join('');
@@ -1314,9 +1575,10 @@
     function sendRecapToWA() {
       let totalAll = 0, totalCash = 0, totalQris = 0;
       transactions.forEach(tx => {
-        totalAll += tx.total;
-        if (tx.payment === 'Tunai') totalCash += tx.total;
-        else totalQris += tx.total;
+        const txTotal = Number(tx.total) || 0;
+        totalAll += txTotal;
+        if (tx.payment === 'Tunai') totalCash += txTotal;
+        else totalQris += txTotal;
       });
 
       const dateStr = new Date().toLocaleDateString('id-ID', { dateStyle: 'full' });
@@ -1338,9 +1600,12 @@
       }
       const ok = await showConfirmDialog(
         'Tutup Buku Harian',
-        'Tutup buku sekarang? Semua riwayat transaksi hari ini akan dihapus (pastikan sudah kirim rekap ke WA jika perlu).'
+        'Tutup buku sekarang? Semua riwayat transaksi hari ini di database akan dihapus (pastikan sudah kirim rekap ke WA jika perlu).'
       );
       if (ok) {
+        if (supabaseClient) {
+          await supabaseClient.from('seblak_transactions').delete().neq('id', '');
+        }
         transactions = [];
         saveLocalCache();
         renderOmzet();
